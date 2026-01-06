@@ -1,0 +1,12 @@
+# Core data processing libraries
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization library
+matplotlib>=3.7.0
+
+# Jupyter notebook support
+jupyter>=1.0.0
+ipykernel>=6.25.0
+
+

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HeartCare Analytics - Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #fafafa;
+        color: #4a4a4a;
+      }
+
+      .navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 40px;
+        background: #fff;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .navbar-brand {
+        font-weight: 700;
+        font-size: 20px;
+        color: #4a4a4a;
+      }
+
+      .navbar-brand span {
+        color: #9dd9d2;
+      }
+
+      .nav-links a {
+        margin-left: 24px;
+        text-decoration: none;
+        color: #7a7a7a;
+        font-size: 14px;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      .nav-links a.active {
+        color: #9dd9d2;
+        border-bottom: 2px solid #9dd9d2;
+        padding-bottom: 4px;
+      }
+
+      .nav-links a:hover {
+        color: #9dd9d2;
+      }
+
+      .page-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 20px 50px;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 8px;
+        font-size: 28px;
+        font-weight: 600;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #7a7a7a;
+        margin-bottom: 32px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+      }
+
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+        padding: 24px;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      }
+
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .card-subtitle {
+        font-size: 13px;
+        color: #8a8a8a;
+        margin-bottom: 16px;
+      }
+
+      .chart-container {
+        position: relative;
+        height: 280px;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .navbar {
+          padding: 12px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="navbar">
+      <div class="navbar-brand"><span>❤</span> HeartCare Analytics</div>
+      <div class="nav-links">
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="risk_scoring.html">Risk Scoring</a>
+      </div>
+    </div>
+
+    <div class="page-container">
+      <h1>Heart Disease Risk Dashboard</h1>
+      <p class="subtitle">
+        Comprehensive analytics from 1,025 patient records<br />
+        Data processed with Apache Hive and visualized with Chart.js
+      </p>
+
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">Heart Disease Rate by Age Group</div>
+          <div class="card-subtitle">
+            Younger patients show unexpectedly higher disease rates
+          </div>
+          <div class="chart-container"><canvas id="ageChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Heart Disease Rate by Sex</div>
+          <div class="card-subtitle">
+            Females show 72% prevalence versus 42% in males
+          </div>
+          <div class="chart-container"><canvas id="sexChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Heart Disease Rate by Age and Sex</div>
+          <div class="card-subtitle">
+            Females display U-shaped pattern; males show linear decline
+          </div>
+          <div class="chart-container"><canvas id="ageSexChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            Risk Level Distribution (Rule-based Score)
+          </div>
+          <div class="card-subtitle">
+            Medium-risk dominates at 50%, with low-risk at 41% and high-risk at
+            9%
+          </div>
+          <div class="chart-container"><canvas id="riskChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ===== Configuration =====
+      const COLORS = {
+        age: ["#A8E6CE", "#DCEDC2", "#FFD3B5", "#FFAAA6"],
+        sex: { Male: "#9DD9D2", Female: "#F4ACB7" },
+        risk: ["#A8E6CE", "#FFD3B5", "#FFAAA6"],
+      };
+
+      const CHART_OPTIONS = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: "bottom",
+            labels: {
+              usePointStyle: true,
+              padding: 15,
+              font: { size: 12 },
+              color: "#6A6A6A",
+            },
+          },
+          tooltip: {
+            backgroundColor: "rgba(0,0,0,0.8)",
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { size: 13, weight: "600" },
+            bodyFont: { size: 12 },
+          },
+        },
+      };
+
+      // ===== Utility Functions =====
+      const parseCSV = (text) =>
+        text
+          .trim()
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => line.split(","));
+
+      const loadCSV = async (url) => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`);
+          return parseCSV(await res.text());
+        } catch (err) {
+          throw new Error(
+            `Cannot load ${url}. Use local server: python -m http.server 8000`
+          );
+        }
+      };
+
+      const createBarChart = (id, labels, data, colors, showLegend = false) => {
+        new Chart(document.getElementById(id), {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Disease Rate (%)",
+                data,
+                backgroundColor: colors,
+                borderColor: "#FFF",
+                borderWidth: 3,
+                borderRadius: 8,
+              },
+            ],
+          },
+          options: {
+            ...CHART_OPTIONS,
+            plugins: {
+              ...CHART_OPTIONS.plugins,
+              legend: { display: showLegend },
+              tooltip: {
+                ...CHART_OPTIONS.plugins.tooltip,
+                callbacks: { label: (ctx) => `${ctx.parsed.y.toFixed(1)}%` },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                  callback: (v) => v + "%",
+                  color: "#7A7A7A",
+                  font: { size: 11 },
+                },
+                grid: { color: "rgba(0,0,0,0.06)", drawBorder: false },
+                border: { display: false },
+              },
+              x: {
+                ticks: { color: "#7A7A7A", font: { size: 11 } },
+                grid: { display: false },
+                border: { display: false },
+              },
+            },
+          },
+        });
+      };
+
+      // ===== Main Logic =====
+      (async () => {
+        try {
+          // Load all CSV files in parallel
+          const [ageData, sexData, ageSexData, riskData] = await Promise.all([
+            loadCSV("../data/processed/age_group_stats.csv"),
+            loadCSV("../data/processed/sex_stats.csv"),
+            loadCSV("../data/processed/age_sex_stats.csv"),
+            loadCSV("../data/processed/risk_level_stats.csv"),
+          ]);
+
+          // Chart 1: Age group
+          const ageLabels = ageData.map((r) => r[0]);
+          const ageRates = ageData.map((r) => parseFloat(r[3]));
+          createBarChart("ageChart", ageLabels, ageRates, COLORS.age);
+
+          // Chart 2: Sex
+          const sexSorted = sexData.sort(
+            (a, b) => parseInt(a[0]) - parseInt(b[0])
+          );
+          const sexLabels = sexSorted.map((r) =>
+            parseInt(r[0]) === 0 ? "Female" : "Male"
+          );
+          const sexRates = sexSorted.map((r) => parseFloat(r[3]));
+          createBarChart(
+            "sexChart",
+            sexLabels,
+            sexRates,
+            sexLabels.map((l) => COLORS.sex[l])
+          );
+
+          // Chart 3: Age × Sex
+          const ageOrder = ["Under 40", "40-54", "55-64", "65+"];
+          const maleRates = ageOrder.map((age) => {
+            const row = ageSexData.find((r) => r[0] === age && r[1] === "1");
+            return row ? parseFloat(row[4]) : 0;
+          });
+          const femaleRates = ageOrder.map((age) => {
+            const row = ageSexData.find((r) => r[0] === age && r[1] === "0");
+            return row ? parseFloat(row[4]) : 0;
+          });
+
+          new Chart(document.getElementById("ageSexChart"), {
+            type: "bar",
+            data: {
+              labels: ageOrder,
+              datasets: [
+                {
+                  label: "Male",
+                  data: maleRates,
+                  backgroundColor: COLORS.sex.Male,
+                  borderColor: "#FFF",
+                  borderWidth: 2,
+                  borderRadius: 6,
+                },
+                {
+                  label: "Female",
+                  data: femaleRates,
+                  backgroundColor: COLORS.sex.Female,
+                  borderColor: "#FFF",
+                  borderWidth: 2,
+                  borderRadius: 6,
+                },
+              ],
+            },
+            options: {
+              ...CHART_OPTIONS,
+              plugins: {
+                ...CHART_OPTIONS.plugins,
+                tooltip: {
+                  ...CHART_OPTIONS.plugins.tooltip,
+                  callbacks: {
+                    label: (ctx) =>
+                      `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`,
+                  },
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: 110,
+                  ticks: {
+                    callback: (v) => v + "%",
+                    color: "#7A7A7A",
+                    font: { size: 11 },
+                  },
+                  grid: { color: "rgba(0,0,0,0.06)", drawBorder: false },
+                  border: { display: false },
+                },
+                x: {
+                  ticks: { color: "#7A7A7A", font: { size: 11 } },
+                  grid: { display: false },
+                  border: { display: false },
+                },
+              },
+            },
+          });
+
+          // Chart 4: Risk level
+          const riskOrder = ["Low", "Medium", "High"];
+          const riskSorted = riskData.sort(
+            (a, b) => riskOrder.indexOf(a[0]) - riskOrder.indexOf(b[0])
+          );
+          const riskLabels = riskSorted.map((r) => r[0]);
+          const riskCounts = riskSorted.map((r) => parseInt(r[1]));
+
+          new Chart(document.getElementById("riskChart"), {
+            type: "doughnut",
+            data: {
+              labels: riskLabels,
+              datasets: [
+                {
+                  label: "Number of Patients",
+                  data: riskCounts,
+                  backgroundColor: COLORS.risk,
+                  borderColor: "#FFF",
+                  borderWidth: 4,
+                },
+              ],
+            },
+            options: {
+              ...CHART_OPTIONS,
+              cutout: "65%",
+              plugins: {
+                ...CHART_OPTIONS.plugins,
+                tooltip: {
+                  ...CHART_OPTIONS.plugins.tooltip,
+                  callbacks: {
+                    label: (ctx) => {
+                      const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                      const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                      return `${ctx.label}: ${ctx.parsed} patients (${pct}%)`;
+                    },
+                  },
+                },
+              },
+            },
+            plugins: [
+              {
+                id: "centerText",
+                beforeDraw: (chart) => {
+                  const {
+                    ctx,
+                    chartArea: { left, top, width, height },
+                  } = chart;
+                  ctx.save();
+                  const centerX = left + width / 2;
+                  const centerY = top + height / 2;
+
+                  ctx.font =
+                    'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI"';
+                  ctx.fillStyle = "#7A7A7A";
+                  ctx.textAlign = "center";
+                  ctx.textBaseline = "middle";
+                  ctx.fillText("Total", centerX, centerY - 12);
+
+                  const total = chart.data.datasets[0].data.reduce(
+                    (a, b) => a + b,
+                    0
+                  );
+                  ctx.font =
+                    'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI"';
+                  ctx.fillStyle = "#4A4A4A";
+                  ctx.fillText(total.toLocaleString(), centerX, centerY + 10);
+
+                  ctx.restore();
+                },
+              },
+            ],
+          });
+        } catch (error) {
+          document.querySelector(".page-container").innerHTML = `
+          <h1>Error Loading Data</h1>
+          <p class="subtitle">Failed to load data files. Please ensure the CSV files are available.</p>
+          <p style="color: #FFAAA6; text-align: center; margin-top: 20px;">${error.message}</p>
+        `;
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+.ipynb_checkpoints/
+
+# Docker / Hadoop runtime
+docker/namenode/
+docker/datanode/
+docker/tmp/
+metastore_db/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
