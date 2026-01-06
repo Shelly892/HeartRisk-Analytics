@@ -14,3 +14,8 @@ metastore_db/
 # OS
 .DS_Store
 Thumbs.db
+apache-hive-3.1.2-bin.tar.gz
+
+apache-hive-3.1.2-bin.tar.gz
+*.tar.gz
+*.tgz
