@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HeartCare Analytics - Risk Scoring</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        background: #fafafa;
+        margin: 0;
+        padding: 0;
+        color: #4a4a4a;
+      }
+
+      /* Top navigation bar (same as dashboard) */
+      .navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 40px;
+        background: #ffffff;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .navbar-brand {
+        font-weight: 700;
+        font-size: 20px;
+        color: #4a4a4a;
+        letter-spacing: -0.5px;
+      }
+
+      .navbar-brand span {
+        color: #9dd9d2;
+      }
+
+      .nav-links a {
+        margin-left: 24px;
+        text-decoration: none;
+        color: #7a7a7a;
+        font-size: 14px;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      .nav-links a.active {
+        color: #9dd9d2;
+        border-bottom: 2px solid #9dd9d2;
+        padding-bottom: 4px;
+      }
+
+      .nav-links a:hover {
+        color: #9dd9d2;
+      }
+
+      /* Content area */
+      .page-container {
+        max-width: 580px;
+        margin: 0 auto;
+        padding: 32px 20px 50px;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 8px;
+        color: #4a4a4a;
+        font-size: 28px;
+        font-weight: 600;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #7a7a7a;
+        margin-bottom: 28px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .form-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 28px 32px 32px;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+      }
+
+      label {
+        font-weight: 600;
+        margin-top: 16px;
+        display: block;
+        font-size: 14px;
+        color: #5a5a5a;
+        margin-bottom: 6px;
+      }
+
+      label:first-of-type {
+        margin-top: 0;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 11px 14px;
+        border-radius: 8px;
+        border: 1.5px solid #e0e0e0;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        background: #fafafa;
+        color: #4a4a4a;
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #9dd9d2;
+        box-shadow: 0 0 0 3px rgba(157, 217, 210, 0.1);
+        background: #ffffff;
+      }
+
+      input::placeholder {
+        color: #aaaaaa;
+      }
+
+      button {
+        margin-top: 24px;
+        width: 100%;
+        background: linear-gradient(135deg, #9dd9d2 0%, #a8e6ce 100%);
+        color: #ffffff;
+        padding: 13px;
+        border: none;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 12px rgba(157, 217, 210, 0.3);
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(157, 217, 210, 0.4);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      .result-box {
+        margin-top: 24px;
+        padding: 20px 24px;
+        border-radius: 12px;
+        display: none;
+        border: 2px solid;
+      }
+
+      .result-box.low-risk {
+        background: #f0faf5;
+        border-color: #a8e6ce;
+      }
+
+      .result-box.medium-risk {
+        background: #fff8f0;
+        border-color: #ffd3b5;
+      }
+
+      .result-box.high-risk {
+        background: #fff0f0;
+        border-color: #ffaaa6;
+      }
+
+      .risk-level {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .risk-level-icon {
+        font-size: 28px;
+      }
+
+      .low-risk .risk-level {
+        color: #4a9a6a;
+      }
+
+      .medium-risk .risk-level {
+        color: #d6883a;
+      }
+
+      .high-risk .risk-level {
+        color: #d85050;
+      }
+
+      .score-text {
+        font-size: 14px;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: #6a6a6a;
+      }
+
+      .explanation {
+        margin-top: 10px;
+        color: #5a5a5a;
+        font-size: 14px;
+        line-height: 1.6;
+        padding-top: 12px;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .factors-list {
+        margin-top: 8px;
+        padding-left: 20px;
+      }
+
+      .factors-list li {
+        margin-bottom: 4px;
+        color: #6a6a6a;
+      }
+
+      .disclaimer {
+        margin-top: 20px;
+        padding: 14px 18px;
+        background: #fff9e6;
+        border-left: 4px solid #ffc107;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #6a6a6a;
+        line-height: 1.5;
+      }
+
+      .disclaimer strong {
+        color: #d68910;
+      }
+
+      /* Responsive */
+      @media (max-width: 600px) {
+        .navbar {
+          padding: 12px 20px;
+        }
+
+        .navbar-brand {
+          font-size: 18px;
+        }
+
+        .nav-links a {
+          margin-left: 16px;
+          font-size: 13px;
+        }
+
+        .page-container {
+          padding: 24px 16px 40px;
+        }
+
+        .form-card {
+          padding: 24px 20px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Navigation bar -->
+    <div class="navbar">
+      <div class="navbar-brand"><span>❤</span> HeartCare Analytics</div>
+      <div class="nav-links">
+        <a href="index.html">Dashboard</a>
+        <a href="risk_scoring.html" class="active">Risk Scoring</a>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="page-container">
+      <h1>Heart Disease Risk Calculator</h1>
+      <p class="subtitle">
+        Rule-based risk scoring (0–5 points) using the same logic<br />
+        as the Hive data transformations in our analytics pipeline
+      </p>
+
+      <div class="form-card">
+        <!-- Age -->
+        <label>Age (years)</label>
+        <input
+          id="age"
+          type="number"
+          placeholder="Enter age (e.g., 45)"
+          min="0"
+          max="120"
+        />
+
+        <!-- Resting BP -->
+        <label>Resting Blood Pressure (mmHg)</label>
+        <input
+          id="rest_bp"
+          type="number"
+          placeholder="Enter BP (e.g., 120)"
+          min="0"
+          max="300"
+        />
+
+        <!-- Cholesterol -->
+        <label>Cholesterol (mg/dL)</label>
+        <input
+          id="chol"
+          type="number"
+          placeholder="Enter cholesterol (e.g., 200)"
+          min="0"
+          max="600"
+        />
+
+        <!-- Fasting Blood Sugar -->
+        <label>Fasting Blood Sugar (FBS)</label>
+        <select id="fbs">
+          <option value="0">Normal (≤ 120 mg/dL)(0)</option>
+          <option value="1">High (> 120 mg/dL)(1)</option>
+        </select>
+
+        <!-- Exercise Angina -->
+        <label>Exercise-Induced Angina</label>
+        <select id="exang">
+          <option value="0">No(0)</option>
+          <option value="1">Yes(1)</option>
+        </select>
+
+        <button onclick="calculateRisk()">Calculate Risk Score</button>
+
+        <div id="result" class="result-box">
+          <div id="level" class="risk-level"></div>
+          <div id="score" class="score-text"></div>
+          <div id="explanation" class="explanation"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function calculateRisk() {
+        const age = parseInt(document.getElementById("age").value);
+        const bp = parseInt(document.getElementById("rest_bp").value);
+        const chol = parseInt(document.getElementById("chol").value);
+        const fbs = parseInt(document.getElementById("fbs").value);
+        const exang = parseInt(document.getElementById("exang").value);
+
+        // Validate input
+        if (isNaN(age) || isNaN(bp) || isNaN(chol)) {
+          alert("Please fill in all fields with valid numbers.");
+          return;
+        }
+
+        let score = 0;
+        let factors = [];
+
+        // Consistent with CASE WHEN logic in Hive
+        if (age > 55) {
+          score++;
+          factors.push("Age over 55 years");
+        }
+        if (bp > 130) {
+          score++;
+          factors.push("High resting blood pressure (>130 mmHg)");
+        }
+        if (chol > 250) {
+          score++;
+          factors.push("High cholesterol (>250 mg/dL)");
+        }
+        if (fbs === 1) {
+          score++;
+          factors.push("Elevated fasting blood sugar");
+        }
+        if (exang === 1) {
+          score++;
+          factors.push("Exercise-induced angina");
+        }
+
+        // Determine risk level
+        let level = "";
+        let levelIcon = "";
+        let riskClass = "";
+
+        if (score <= 1) {
+          level = "Low Risk";
+          levelIcon = "✓";
+          riskClass = "low-risk";
+        } else if (score <= 3) {
+          level = "Medium Risk";
+          levelIcon = "⚠";
+          riskClass = "medium-risk";
+        } else {
+          level = "High Risk";
+          levelIcon = "✖";
+          riskClass = "high-risk";
+        }
+
+        // Update result display
+        const resultBox = document.getElementById("result");
+        resultBox.className = `result-box ${riskClass}`;
+
+        document.getElementById(
+          "level"
+        ).innerHTML = `<span class="risk-level-icon">${levelIcon}</span> ${level}`;
+
+        document.getElementById(
+          "score"
+        ).innerText = `Risk Score: ${score} / 5 points`;
+
+        // Generate explanation
+        let explanation = "";
+        if (factors.length === 0) {
+          explanation =
+            "<p><strong>Good news!</strong> No major risk factors detected based on the input values.</p>" +
+            "<p style='margin-top:8px;'>However, this is a simplified screening tool. " +
+            "Regular check-ups with your healthcare provider are still recommended.</p>";
+        } else {
+          explanation =
+            "<p><strong>Key contributing factors identified:</strong></p>" +
+            "<ul class='factors-list'>" +
+            factors.map((f) => `<li>${f}</li>`).join("") +
+            "</ul>" +
+            "<p style='margin-top:10px;'>This score uses the same rule-based logic " +
+            "as our Hive data transformations. Consider consulting a healthcare professional " +
+            "for comprehensive assessment.</p>";
+        }
+
+        document.getElementById("explanation").innerHTML = explanation;
+        resultBox.style.display = "block";
+
+        // Smooth scroll to result
+        resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      // Submit on Enter key
+      document.addEventListener("DOMContentLoaded", function () {
+        const inputs = document.querySelectorAll("input");
+        inputs.forEach((input) => {
+          input.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+              calculateRisk();
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
